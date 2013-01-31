@@ -1,0 +1,177 @@
+#!/bin/bash
+
+random()
+{
+	number=`expr $RANDOM % $1 + 1`
+	item=`sed -n -e "$number"p $2`
+	echo $item
+}
+
+checkVote(){
+	grep "^winning $1/losing $2$" "$3"
+	one=$?
+	grep "^winning $2/losing $1$" "$3"
+	echo $one||$?
+}
+
+
+
+# if HEAD2HEAD_DATA is not defined
+if [ ! "$HEAD2HEAD_DATA" ] ; then
+#	dir=/home/$USER/.head2head
+	dir=$HOME/.head2head
+	if [ ! -d "$dir" ] ; then
+		mkdir  $dir
+		chmod -R a+rx $dir
+	fi
+# if HEAD2HEAD_DATA is defined
+else
+	dir=/home/$HEAD2HEAD_DATA/.head2head
+fi
+
+case $1 in 
+	item)
+		if [ -z "$2" ] ; then
+			ls -1 $dir/items 2> error_log
+			if [ "$?" -ne 0 ] ; then
+				echo "ERROR: No category to show."
+				exit 1
+			fi
+		else 
+			cat_path=$dir/items/$2
+			if [ ! "$3" ] ; then
+				if [ -f "$cat_path" ] ; then
+					cat $cat_path
+				else 
+					echo "ERROR: No such category"
+					exit 1
+				fi
+			else
+				if [ "$HEAD2HEAD_DATA" ] ; then
+					echo "Sorry! You can not add items into others' category!"
+					exit 1
+				fi
+				if [ ! -d "$dir"/items ] ; then
+					mkdir -m 755 $dir/items
+				fi
+				#cat_path is a file
+				if [ ! -f "$cat_path" ] ; then
+					touch "$cat_path"
+					chmod 744 "$cat_path"
+				fi
+				if [ ! "`grep ^"$3"$ "$cat_path"`" ]
+					then	echo $3 >> $cat_path
+				else 
+					echo "$3 already existed"
+					exit 1
+				fi
+			fi
+		fi	
+	;;
+	vote)
+		cat_path=$dir/items/$2
+		if [ ! -f "$cat_path" ] ; then
+			echo "ERROR: No such category"
+			exit 1
+		fi 
+		if [ ! "$HEAD2HEAD_DATA" ] ; then
+			user_path=$dir/$USER
+		else
+			user_path=/home/$USER/.head2head/$HEAD2HEAD_DATA
+		fi
+		if [ ! -d "$user_path" ] ; then
+			mkdir -m 755 $user_path
+		fi
+		vote_path=$user_path/$2
+		if [ ! -f "$vote_path" ] ; then
+			touch "$vote_path"
+			chmod 744 "$vote_path"
+		fi
+	#	num=`wc -l $cat_path`
+	#	num=${num%%[^[:digit:]]*}
+		all=`cat $cat_path| wc -l`
+		if [ $all -lt 2 ] ; then
+		echo "No enough item to vote!" 
+		exit 1
+		fi
+	# begin to random
+		first=`random $all $cat_path`
+		second=`random $all $cat_path`
+	#	bool=`checkVote $first $second $vote_path`
+		#until [ "$first" != "$second" -a "$bool" != "1" ] ; do
+		until [ "$first" != "$second" ] ; do
+			first=`random $all $cat_path`
+			second=`random $all $cat_path`
+		done
+
+		echo "1)" $first
+		echo "2)" $second
+		read choice	
+		if [ $choice -eq 1 ] ;	then
+			echo "winning $first/losing $second" >> $vote_path
+		else 
+			echo "winning $second/losing $first" >> $vote_path
+		fi
+	;;
+	results)
+		#if HEAD2HEAD_DATA is defined
+	#	if [ "$HEAD2HEAD_DATA" ] ; then 
+	#		result_path=$dir/$USER
+	#	else 
+	#	o\	result_path=
+#		if [ "$HEAD2HEAD_DATA" ] ; then
+#			if [ ! "`echo "$2" | grep "/"`" ] ; then
+#				cat_path=/home/$USER/.head2head/items
+#				vote_path=$dir/$USER
+#				cat=$2
+#			else
+#				cat_path=
+#				vote_path=
+#				cat=${2##[[:alnum:]]*/}
+#		else
+		if [ "`echo "$2" | grep "/"`" ] ; then
+			user=${2%%/[[:alnum:]]*}
+			cat_path=/home/$user/.head2head/items
+			vote_path=$dir/$user
+			cat=${2##[[:alnum:]]*/}
+		else
+			if [ "$HEAD2HEAD_DATA" ] ; then
+				cat_path=/home/$USER/.head2head/items
+			else
+				cat_path=$dir/items
+			fi 
+			vote_path=$dir/$USER
+			cat=$2
+		fi
+		vote_file="$vote_path/$cat"
+		if [ ! `find $cat_path -name "$cat"` ] ; then
+			echo $vote_file
+			echo "No such category"
+			exit 1
+		fi
+		if [ -f "$vote_file" ] ; then
+		#	cat $vote_file
+	#		cat $cat_path/$cat
+			touch .tmp
+			while read line
+			do
+				winning=`grep -c "winning $line" "$vote_file"`
+				losing=`grep -c "losing $line" "$vote_file"`
+				if [ "$(($winning+$losing))" -eq 0 ] ; then
+					echo $line,$winning,$losing,- >> .tmp
+				else
+					echo $line,$winning,$losing,$(($(($winning*100))/$(($winning+$losing)))) >> .tmp
+				fi
+			done < "$cat_path/$cat"
+			sort -t, -k4nr .tmp
+			rm .tmp
+		else
+			echo "There is no vote for $cat."
+		fi
+	;;
+	*)	
+		echo "Wrong option"
+		exit 1
+	;;
+esac
+

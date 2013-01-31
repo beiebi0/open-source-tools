@@ -1,0 +1,200 @@
+#!/bin/bash
+
+random()
+{
+	number=`expr $RANDOM % $1 + 1`
+	item=`sed -n -e "$number"p "$2"`
+	echo $item
+}
+
+
+# if HEAD2HEAD_DATA is not defined
+if [ ! "$HEAD2HEAD_DATA" ] ; then
+#	dir=/home/$USER/.head2head
+	dir=$HOME/.head2head
+	if [ ! -d "$dir" ] ; then
+		mkdir  $dir
+		chmod -R a+rx $dir
+	fi
+# if HEAD2HEAD_DATA is defined
+else
+	dir=/home/$HEAD2HEAD_DATA/.head2head
+fi
+
+#Check the number of 
+if [ "$#" -eq 0 ] ; then 
+	echo "ERROR: No option is given!" 1>&2
+	exit 7
+fi
+#Check invalid arguments
+if [ "$1" != "results" ] ; then 
+	for arg in "$@"
+	do
+#		if [ "`echo "$arg" | grep "/"`" ] || [ "`echo "$arg"| grep "\n"`" ] ; then
+		if [ "`echo "$arg" | grep "/"`" ] ; then
+			echo "Invalid arguments." 1>&2
+			exit 8
+		fi
+	done
+fi
+	
+case $1 in 
+	item)
+		if [ "$#" -gt 3 ] ; then
+			echo "ERROR: Too many arguments are given!" 1>&2
+			exit 7
+		fi
+		if [ -z "$2" ] ; then
+#			ls -1 $dir/items 2> error_log
+			ls -1 $dir/items
+			if [ "$?" -ne 0 ] ; then
+				echo "ERROR: No category to show." 1>&2
+				exit 2
+			fi
+		else 
+			cat_path=$dir/items/$2
+			if [ ! "$3" ] ; then
+				if [ -f "$cat_path" ] ; then
+					cat $cat_path
+				else 
+					echo "ERROR: No such category" 1>&2
+					exit 1
+				fi
+			else
+				if [ "$HEAD2HEAD_DATA" ] ; then
+					echo "Sorry! You can not add items into others' category!" 1>&2
+					exit 6
+				fi
+				if [ ! -d "$dir"/items ] ; then
+					mkdir -m 755 $dir/items
+				fi
+				#cat_path is a file
+				if [ ! -f "$cat_path" ] ; then
+					touch "$cat_path"
+					chmod 744 "$cat_path"
+				fi
+				if [ ! "`grep ^"$3"$ "$cat_path"`" ]
+					then	echo $3 >> $cat_path
+				else 
+					echo "$3 already existed" 1>&2
+					exit 3
+				fi
+			fi
+		fi	
+	;;
+	vote)
+		if [ "$#" -gt 2 ] ; then
+			echo "ERROR: Too many arguments are given!" 1>&2
+			exit 7
+		fi
+		if [ ! "$2" ] ; then 
+			echo "No category chosen to vote" 1>&2
+			exit 9
+		fi
+		cat_path=$dir/items/$2
+		if [ ! -f "$cat_path" ] ; then
+			echo "ERROR: No such category" 1>&2
+			exit 1
+		fi 
+#		if [ ! "$USER" ] ; then
+#			USER=lt966
+#		fi
+		if [ ! "$HEAD2HEAD_DATA" ] ; then
+			user_path=$dir/$USER
+		else
+			user_path=/home/$USER/.head2head/$HEAD2HEAD_DATA
+		fi
+	#	num=`wc -l $cat_path`
+	#	num=${num%%[^[:digit:]]*}
+		all=`cat "$cat_path"| wc -l`
+		if [ $all -lt 2 ] ; then
+		echo "No enough item to vote!" 1>&2
+		exit 4
+		fi
+		if [ ! -d "$user_path" ] ; then
+			mkdir -m 755 $user_path
+		fi
+		vote_path=$user_path/$2
+		if [ ! -f "$vote_path" ] ; then
+			touch "$vote_path"
+			chmod 744 "$vote_path"
+		fi
+	# begin to random
+		first=`random "$all" "$cat_path"`
+		second=`random "$all" "$cat_path"`
+		until [ "$first" != "$second" ] ; do
+			first=`random "$all" "$cat_path"`
+			second=`random "$all" "$cat_path"`
+		done
+	#random end
+
+		echo "1)" $first
+		echo "2)" $second
+		read choice	
+		if [ $choice -eq 1 ] ;	then
+			echo "$first/$second" >> $vote_path
+		else 
+			echo "$second/$first" >> $vote_path
+		fi
+	;;
+	results)
+		if [ "$#" -gt 2 ] ; then
+			echo "ERROR: Too many arguments are given!" 1>&2
+			exit 7
+		fi
+		if [ ! "$2" ] ; then 
+			echo "No category chosen to vote" 1>&2
+			exit 9
+		fi
+		cat_path=$dir/items/$2
+		if [ "`echo "$2" | grep "/"`" ] ; then
+			user=${2%%/[[:alnum:]]*}
+			cat_path=/home/$user/.head2head/items
+			vote_path=$dir/$user
+			cat=${2##[[:alnum:]]*/}
+		else
+			if [ "$HEAD2HEAD_DATA" ] ; then
+				if [ ! "$USER" ] ; then
+					USER=lt966
+				fi
+				cat_path=/home/$USER/.head2head/items
+			else
+				cat_path=$dir/items
+			fi 
+			vote_path="$dir/$USER"
+			cat="$2"
+		fi
+		vote_file="$vote_path/$cat"
+
+		if [ ! "`find "$cat_path" -name "$cat"`" ] ; then
+			#echo $vote_file
+			echo "ERROR: No such category" 1>&2
+			exit 1
+		fi
+		if [ -f "$vote_file" ] ; then
+			#touch .tmp
+			mkdir /tmp/.head2head
+			touch /tmp/.head2head/.tmp
+			while read line
+			do
+				winning=`grep -c "^$line/" "$vote_file"`
+				losing=`grep -c "/$line$" "$vote_file"`
+				if [ "$(($winning+$losing))" -eq 0 ] ; then
+					echo $line,$winning,$losing,-1 >> /tmp/.head2head/.tmp
+				else
+					echo $line,$winning,$losing,$(($(($winning*100))/$(($winning+$losing)))) >> /tmp/.head2head/.tmp
+				fi
+			done < "$cat_path/$cat"
+	  		sort -t, -n -r -k4 -n -r -k2 /tmp/.head2head/.tmp|sed 's/-1$/-/g'
+			rm -r /tmp/.head2head
+		else
+			echo "There is no vote for $cat." 1>&2
+			exit 5
+		fi
+	;;
+	*)	
+		echo "Invalid option" 1>&2
+		exit 6
+	;;
+esac
+

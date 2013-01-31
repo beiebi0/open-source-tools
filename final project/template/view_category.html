@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="accordion">
+{% for c in categories %}
+  <div class="accordion-group">
+    <div class="accordion-heading">
+      <a class="accordion-toggle" data-toggle="collapse" href="#collapse{{forloop.counter}}">
+        {{ c.name }}
+      </a>
+      <span class="offset2">
+        <a class="btn btn-link" href="{{ add_url}}{{ c.key }}">Add</a>
+        <a class='btn btn-link' href="{{ up_url }}{{ c.key }}">Edit</a>
+        <a class='btn btn-link' href="{{ del_url }}{{ c.key }}">Delete</a>
+        <a class="btn btn-link" href="{{ export_url}}{{ c.key }}" target="_blank">Export</a>
+     </span>
+    </div>
+    <div id="collapse{{forloop.counter}}" key="{{c.key}}" class="accordion-body collapse">
+      <div class="accordion-inner">
+        <ul class='unstyled'>
+        {% for item in c.items %}
+        <li class='span8'>
+            <label class='span2'>
+                {{ item.name }} - {{ item.votes.count }}
+            </label>
+            <span class='span2'>
+            <a class='btn btn-link' href="{{ edit_item_url }}{{ item.key }}">Edit</a>
+            <a class='btn btn-link' href="{{ del_item_url }}{{ item.key }}">Delete</a>
+            </span>
+        </li>
+        {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+{% endblock %}

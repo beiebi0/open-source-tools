@@ -1,0 +1,6 @@
+3. grep 'Election 2006' part1.csv | wc -l  (32)
+4. egrep 'SurveyUSA|Rasmussen' part1.csv | wc -l (67)
+5. grep -v 'Election 2006' part1.csv | wc -l (284)
+6. grep '\([[:alpha:]]\{3\} [[:digit:]]\{2\}\),\1' part1.csv 
+7. cut -d, -f1 <(egrep '5[1-9]|[6-9][0-9]' <(cut -d, -f4,5 part1.csv))|sort -u
+8. grep '\([A-Z]\)[a-z]* \1.*' <(cut -d, -f2 part1.csv| uniq)

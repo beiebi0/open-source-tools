@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block main %}
+    <div id="edit_item">
+        {{ item }}
+        <form action="" method="POST">
+            <input name="name" value="{{ item.name }}"/>
+            <input type="submit" value="submit" />
+        </form>
+    </div>
+{% endblock %}

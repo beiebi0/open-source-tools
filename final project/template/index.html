@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block main %}
+<h3> Play your vote!  </h3>
+<form action="/category/vote" method='post'>
+{% for c in categories %}
+    <ul>
+        {{ c.name }}
+        {% if c.items %}
+        <input name='form_index' value='{{ forloop.counter }}' type='hidden'/>
+        {% for item in items %}
+        <li><label class="radio">
+            <input type='text' style="display:none;" name="vote_key" value="{{ item.key }}" />
+          <input type="radio" name="vote_item" value="{{item.key}}" {% if forloop.first %}checked{% endif %}>
+            {{ item.name }} 
+        </label></li>
+        {% endfor %}
+        <button class="btn btn-primary offset2" type="submit">Vote</button>
+    {% endif %}
+    </ul>
+{% endfor %}
+</form>
+</div>
+{% endblock %}

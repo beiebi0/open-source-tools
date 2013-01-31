@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block main %}
+    <div id="results">
+    {% for c in categories %}
+    <table class="table">
+        <tr>
+            <th colspan="2">{{ c.name }}</th>
+        </tr>
+        {% for i in c.items %}
+            <tr>
+                <td>{{ i.name }}</td>
+                <td>{{ i.votes.count }}</td>
+                <td>{{ i.losing.count }}</td>
+            </td>
+        {% endfor %}
+    </table>
+    {% endfor %}
+    </div>
+{% endblock %}

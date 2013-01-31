@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block main %}
+<form action="/category/import" enctype="multipart/form-data" method="POST">
+  <legend>Import category</legend>
+  <label>XML File</label>
+  <input type="file" name="xml_file" placeholder="Select xml file...">
+  <button type="submit" class="btn">Submit</button>
+</form>
+{% endblock %}

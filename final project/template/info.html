@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block main %}
+    <div class="alert {% if result.state %} alert-success {% else %} alert-error {% endif %}">
+        <p>
+        <a href="/"><button type="button" class="close">x</button></a>
+          {% if not result.state %}<h4><strong>Error! </strong></h4>{% else %}<h4><strong>Sucess! </strong></h4>{% endif %}
+          <p class='lead'>
+          {{ result.msg }}
+          </p>
+        </p>
+        <p>
+          <a href="/" class="btn btn-primary offset9">Next Category</a>
+        </p>
+    </div>
+    <div id="old_items">
+        <table class="table">
+            <tr>
+                <th>Item</th>
+                <th>Votes</th>
+            </tr>
+            {% for i in result.old_items %}
+                <tr>
+                    <td>{{ i.name }}</td>
+                    <td>{{ i.votes.count }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+{% endblock %}
